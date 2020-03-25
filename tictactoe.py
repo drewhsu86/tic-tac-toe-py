@@ -1,5 +1,7 @@
 # time is imported to allow program to wait (time.sleep(seconds)) before computer moves
+# sys is imported for sys.exit()
 import time
+import sys
 
 # tictactoe practice app
 # Part 1: Design
@@ -30,15 +32,11 @@ import time
 #         There will be one "cpuMove" function and one "executeMove" function
 #
 #         cpuMove()
-#             return type: integer (index of 9 length array)
-#         executeMove(move, player)
-#             return type: none
-#             side effect: changes board using move and player
-#               i) waits 5 sec
-#               ii) calls cpuMove and gets an integer
-#               iii) execute move (assumes move is legal based on cpuMove)
-#               iv) askForMove is called again (should have an overall game loop)
-#             player can just be 1 and 2 (1 is always human, 2 is cpu)
+#             return type: integer (index of 9 length array) of best move
+#         gradeMove(move)
+#             returns a value of how good the move is based on heuristic
+#             parameter move is 0 thru 8
+#
 #         askForMove()
 #             return type: none
 #             side effect: ask for player input using print and raw_input or input
@@ -60,7 +58,17 @@ import time
 
 
 # initialize our board
-board = [0]*9
+board = [0] * 9
+cheatmode = 0
+t1 = [0, 1, 2]
+t2 = [3, 4, 5]
+t3 = [6, 7, 8]
+t4 = [0, 3, 6]
+t5 = [1, 4, 7]
+t6 = [2, 5, 8]
+t7 = [0, 4, 8]
+t8 = [2, 4, 6]
+triplets = [t1, t2, t3, t4, t5, t6, t7, t8]
 
 
 def numToXO(n):
@@ -102,42 +110,210 @@ def printBoard():
 
         print('| ' + numToXO(board[0+x*3]) + ' | ' +
               numToXO(board[1 + x*3]) + ' | ' + numToXO(board[2 + x*3]) + ' | ' + str(x+1))
-        print ('-------------')
+        print('-------------')
     print('  a   b   c  ')
 
 
 def askForMove():
     # prints board then asks for and parses input
-    print ('')
-    print ('Player\'s turn to go!')
+    print('')
+    print('Player\'s turn to go!')
     print('')
     printBoard()
+    print('')
     # ask for left (abc) and then up (123) coordinates
     left = up = 0
     while True:
-        left = input('Input Left Coordinate (a, b or c): ').lower()
-        if left != 'a' and left != 'b' and left != 'c':
-            print ('Input not recognized. Please try again.')
-        else:
+        while True:
+            left = input('Input Left Coordinate (a, b or c): ').lower()
+            if left != 'a' and left != 'b' and left != 'c' and left != 'q':
+                print('Input not recognized. Please try again.')
+            elif left == 'q':
+                sys.exit()
+            else:
+                break
+        while True:
+            up = input('Input Up Coordinate (1, 2 or 3): ').lower()
+            if up != '1' and up != '2' and up != '3' and up != 'q':
+                if up == 'cheat':
+                    cheatmode = 1
+                print('Input not recognized. Please try again.')
+            elif up == 'q':
+                sys.exit()
+            else:
+                break
+        if board[coordToIndex(left, up)] == 0:
+            print('')
+            print('Move made: ' + left + ', ' + up)
+            print('')
+            board[coordToIndex(left, up)] = 1
             break
-    while True:
-        up = input('Input Up Coordinate (1, 2 or 3): ').lower()
-        if up != '1' and up != '2' and up != '3':
-            print ('Input not recognized. Please try again.')
         else:
-            break
-    print ('')
-    print ('Move made: ' + left + ', ' + up)
-    print ('')
-    board[coordToIndex(left, up)] = 1
+            print('')
+            print('This space is not empty.')
+            print('')
+
     printBoard()
 
+
+def cpuMove():
+    # for all possible moves, grade the move and pick the highest graded one
+    # save an array of moves where it stores submatrices [move, score]
+
+    print('')
+    print('CPU is thinking!!! [[o_o]')
+    print('')
+    time.sleep(1)
+
+    movelist = []
+    for move in range(9):
+        # check if move is legal, then add it to array moveList after grading
+        if board[move] == 0:
+            grade = gradeMove(move, 2, 2)
+            print('Calculating: ' + str(move) + ': ' + str(grade) + ' ... ')
+            movelist.append([move, grade])
+    # after the for loop, movelist should be filled up
+    # if movelist is empty that means there's no free spaces
+    if len(movelist) == 0:
+        print('Looks like a tie, human. Hit ENTER to restart.')
+        restart()
+    # find the max grade in movelist and do that move
+    maxGrade = movelist[0]
+    # print(movelist)
+    for movegrade in movelist:
+        if movegrade[1] > maxGrade[1]:
+            maxGrade = movegrade
+    # maxgrade should be an array holding the [move, grade]
+    AImove = maxGrade[0]
+    board[AImove] = 2
+
+
+def gradeMove(move, level, player):
+    # change board at the beginning, but then change it back at the end
+    board[move] = player
+    # printBoard()
+    # level used to determine how many moves to look ahead
+    if level == 0:
+        return 0
+    # we check 8 ways to win and only want to look at 2 types
+    # win: 3x 2   =     1000
+    # threaten win: 2x 2, 1x 0 (if last one is 1, can't play winning move)
+    # = 10
+    # lose: 3x 1   =   -1000
+    # threaten lose: 2x 1, 1x 0
+    # = -10
+
+    score = 0
+
+    # if this current move is a diagonal it gets +/- 1
+    # diagonals are on spaces 0, 2, 6, 8
+    if move == 0 or move == 2 or move == 6 or move == 8:
+        score = score + player*2 - 3
+
+    for triplet in triplets:
+        numE = numX = numO = 0
+        for p in triplet:
+            piece = board[p]
+            if piece == 0:
+                numE = numE + 1
+            elif piece == 1:
+                numX = numX + 1
+            elif piece == 2:
+                numO = numO + 1
+        # count score for this triplet
+        # if it meets a condition, add it to score
+        if numX == 3:
+            score = score - 1000
+        elif numO == 3:
+            score = score + 1000
+        elif numE == 1:
+            if numX == 2:
+                score = score - 10
+            elif numO == 2:
+                score = score + 10
+    # end of for loop through each triplet
+
+    nextPlayer = 2
+    if player == 2:
+        nextPlayer = 1
+
+    maxDamage = 0
+    for nextmove in range(9):
+        if board[nextmove] == 0:
+            # print('examining move ' + str(nextmove) + ' at level ' + str(level))
+            nextscore = gradeMove(nextmove, level - 1, nextPlayer)
+            board[nextmove] = 0
+            if nextscore < maxDamage:
+                # print(nextscore)
+                maxDamage = nextscore
+    score = score + maxDamage
+
+    # remember to change board back at the end
+    board[move] = 0
+    return score
+
+
+def spaceLeft():
+    for p in board:
+        if p == 0:
+            return True
+    return False
+
+
+def restart():
+    for space in range(9):
+        board[space] = 0
+    gameLoop()
+
+
+def checkWin():
+    # since only 8 ways, we can hardcode in 8 length=3 matrices nested in a matrix
+    # t for triplet
+    for triplet in triplets:
+        numE = numX = numO = 0
+        for p in triplet:
+            piece = board[p]
+            if piece == 0:
+                numE = numE + 1
+            elif piece == 1:
+                numX = numX + 1
+            elif piece == 2:
+                numO = numO + 1
+        # count score for this triplet
+        # if it meets a condition, add it to score
+        # print(str(numX) + ', ' + str(numO))
+        if numX == 3:
+            return 1
+        elif numO == 3:
+            return 2
+    return 0
+    # end of for loop through each triplet
 
 # main game loop start
 # hopefully with the quit option inside askForMove(), we won't freeze our computer
 
+
 def gameLoop():
-    askForMove()
+    while True:
+        askForMove()
+
+        if checkWin() == 1:
+            print('')
+            print('******************************')
+            printBoard()
+            print(' You wonnered!!! [[\'o\']')
+            print('******************************')
+            restart()
+
+        cpuMove()
+
+        if checkWin() == 2:
+            print('')
+            print('******************************')
+            printBoard()
+            print(' You loosed [[._.] ')
+            print('******************************')
+            restart()
 
 
 # start game loop here:
