@@ -176,7 +176,7 @@ def cpuMove():
     # after the for loop, movelist should be filled up
     # if movelist is empty that means there's no free spaces
     if len(movelist) == 0:
-        print('Looks like a tie, human. Hit ENTER to restart.')
+        print('Looks like a tie, human. [[-_-]')
         restart()
     # find the max grade in movelist and do that move
     maxGrade = movelist[0]
