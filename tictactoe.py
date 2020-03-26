@@ -60,6 +60,7 @@ import sys
 # initialize our board
 board = [0] * 9
 cheatmode = 0
+lookAhead = 2
 t1 = [0, 1, 2]
 t2 = [3, 4, 5]
 t3 = [6, 7, 8]
@@ -169,7 +170,7 @@ def cpuMove():
     for move in range(9):
         # check if move is legal, then add it to array moveList after grading
         if board[move] == 0:
-            grade = gradeMove(move, 2, 2)
+            grade = gradeMove(move, lookAhead, 2)
             print('Calculating: ' + str(move) + ': ' + str(grade) + ' ... ')
             movelist.append([move, grade])
     # after the for loop, movelist should be filled up
@@ -317,4 +318,23 @@ def gameLoop():
 
 
 # start game loop here:
+while True:
+    difficulty = input('\n Enter difficulty 1-3:  ')
+    print('')
+    if difficulty == '1':
+        lookAhead = 1
+        print('Stupid CPU mode')
+        break
+    elif difficulty == '2':
+        lookAhead = 3
+        print('Normie CPU mode')
+        break
+    elif difficulty == '3':
+        lookAhead = 5
+        print('Robot Overlord CPU mode')
+        break
+    else:
+        print('Are you sure you understand directions?')
+print('---------------------')
+
 gameLoop()
